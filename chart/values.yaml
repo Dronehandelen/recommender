@@ -1,0 +1,4 @@
+replicaCount: 1
+name: recommender
+image: 'this must be set'
+port: 80

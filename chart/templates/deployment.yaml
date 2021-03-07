@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.name }}
+  labels:
+    app: {{ .Values.name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: {{ .Values.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.name }}
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - {{ .Values.name }}
+                topologyKey: 'kubernetes.io/hostname'
+      containers:
+        - name: {{ .Values.name }}
+          image: {{ .Values.image }}
+          env:
+            - name: CONTAINER_NAME
+              value: {{ .Values.name }}
+            - name: ENV_NAME
+              value: 'production'
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: '/secrets/google/credentials.json'
+            - name: SENTRY_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: recommender-api-config
+                  key: sentryUrl
+          ports:
+            - name: http
+              containerPort: {{ .Values.port }}
+              protocol: TCP
+          volumeMounts:
+            - name: recommender-api-config
+              mountPath: /secrets/google/credentials.json
+              readOnly: true
+              subPath: credentials.json
+          resources:
+            requests:
+              memory: '256Mi'
+              cpu: '50m'
+            limits:
+              memory: '512Mi'
+              cpu: '100m'
+      volumes:
+        - name: recommender-api-config
+          configMap:
+            name: recommender-api-config
