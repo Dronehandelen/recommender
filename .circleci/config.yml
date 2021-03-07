@@ -45,7 +45,8 @@ workflows:
             branches:
               only: master
       - deploy_prod:
-          context: prod
+          context:
+            - GCP
           requires:
             - docker/publish
           filters:
